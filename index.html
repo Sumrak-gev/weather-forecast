@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Погода</title>
+<style>
+  :root {
+    --bg: #1b1832;
+    --bg-alt: #241f42;
+    --fg: #ece8f7;
+    --fg-dim: #a79fc9;
+    --accent: #ffb454;
+    --line: #3a335c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 64px 20px;
+  }
+
+  .wrap { width: 100%; max-width: 480px; }
+
+  h1 {
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 26px;
+    margin: 0 0 24px;
+  }
+
+  form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--bg-alt);
+    color: var(--fg);
+    font-size: 15px;
+  }
+
+  button {
+    padding: 10px 16px;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: #1b1832;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .geo-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--fg-dim);
+    width: 100%;
+    margin-bottom: 28px;
+  }
+
+  #status {
+    color: var(--fg-dim);
+    font-size: 14px;
+    min-height: 20px;
+  }
+
+  .card {
+    border-top: 1px solid var(--line);
+    padding-top: 24px;
+    display: none;
+  }
+
+  .card.visible { display: block; }
+
+  .current {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+
+  .current .emoji { font-size: 48px; }
+
+  .current .temp {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 40px;
+    line-height: 1;
+  }
+
+  .current .place {
+    color: var(--fg-dim);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  .meta {
+    display: flex;
+    gap: 20px;
+    color: var(--fg-dim);
+    font-size: 13px;
+    margin-bottom: 28px;
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  .days {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+
+  .day {
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 4px;
+    background: var(--bg-alt);
+  }
+
+  .day .label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--fg-dim);
+    margin-bottom: 6px;
+  }
+
+  .day .e { font-size: 20px; }
+
+  .day .range {
+    font-size: 11.5px;
+    color: var(--fg-dim);
+    margin-top: 4px;
+  }
+
+  footer {
+    margin-top: 40px;
+    font-size: 12px;
+    color: var(--fg-dim);
+  }
+
+  footer a { color: var(--accent); }
+
+  @media (max-width: 400px) {
+    .days { grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .day { padding: 8px 2px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Прогноз погоды</h1>
+
+  <form id="search-form">
+    <input type="text" id="city-input" placeholder="Город, например Ростов-на-Дону" required>
+    <button type="submit">Найти</button>
+  </form>
+  <button class="geo-btn" id="geo-btn" type="button">📍 Определить по геолокации</button>
+
+  <div id="status"></div>
+
+  <div class="card" id="card">
+    <div class="current">
+      <div class="emoji" id="cur-emoji">☀️</div>
+      <div>
+        <div class="temp" id="cur-temp">--°</div>
+        <div class="place" id="cur-place"></div>
+      </div>
+    </div>
+    <div class="meta">
+      <span id="meta-wind"></span>
+      <span id="meta-desc"></span>
+    </div>
+    <div class="days" id="days"></div>
+  </div>
+
+  <footer>Данные: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (открытый источник, без API-ключа)</footer>
+</div>
+
+<script>
+const statusEl = document.getElementById("status");
+const card = document.getElementById("card");
+
+const WEATHER_CODES = {
+  0: ["☀️", "Ясно"],
+  1: ["🌤️", "Преим. ясно"],
+  2: ["⛅", "Переменная облачность"],
+  3: ["☁️", "Пасмурно"],
+  45: ["🌫️", "Туман"],
+  48: ["🌫️", "Изморозь"],
+  51: ["🌦️", "Лёгкая морось"],
+  53: ["🌦️", "Морось"],
+  55: ["🌦️", "Сильная морось"],
+  61: ["🌧️", "Небольшой дождь"],
+  63: ["🌧️", "Дождь"],
+  65: ["🌧️", "Сильный дождь"],
+  71: ["❄️", "Небольшой снег"],
+  73: ["❄️", "Снег"],
+  75: ["❄️", "Сильный снег"],
+  80: ["🌧️", "Ливень"],
+  81: ["🌧️", "Сильный ливень"],
+  82: ["🌧️", "Очень сильный ливень"],
+  85: ["🌨️", "Снегопад"],
+  86: ["🌨️", "Сильный снегопад"],
+  95: ["⛈️", "Гроза"],
+  96: ["⛈️", "Гроза с градом"],
+  99: ["⛈️", "Сильная гроза"],
+};
+
+function weatherInfo(code) {
+  return WEATHER_CODES[code] || ["🌡️", "Нет данных"];
+}
+
+function setStatus(text) { statusEl.textContent = text; }
+
+async function geocodeCity(name) {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=ru&format=json`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.results || data.results.length === 0) throw new Error("Город не найден");
+  const r = data.results[0];
+  return { lat: r.latitude, lon: r.longitude, label: [r.name, r.admin1, r.country].filter(Boolean).join(", ") };
+}
+
+async function fetchWeather(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Сервис погоды недоступен");
+  return res.json();
+}
+
+function renderWeather(data, place) {
+  const cur = data.current_weather;
+  const [emoji, desc] = weatherInfo(cur.weathercode);
+
+  document.getElementById("cur-emoji").textContent = emoji;
+  document.getElementById("cur-temp").textContent = Math.round(cur.temperature) + "°C";
+  document.getElementById("cur-place").textContent = place;
+  document.getElementById("meta-wind").textContent = "Ветер: " + Math.round(cur.windspeed) + " км/ч";
+  document.getElementById("meta-desc").textContent = desc;
+
+  const days = data.daily;
+  const dayNames = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  const daysEl = document.getElementById("days");
+  daysEl.innerHTML = "";
+
+  for (let i = 0; i < days.time.length; i++) {
+    const date = new Date(days.time[i]);
+    const [e] = weatherInfo(days.weathercode[i]);
+    const div = document.createElement("div");
+    div.className = "day";
+    div.innerHTML = `
+      <div class="label">${i === 0 ? "Сегодня" : dayNames[date.getDay()]}</div>
+      <div class="e">${e}</div>
+      <div class="range">${Math.round(days.temperature_2m_max[i])}° / ${Math.round(days.temperature_2m_min[i])}°</div>
+    `;
+    daysEl.appendChild(div);
+  }
+
+  card.classList.add("visible");
+}
+
+async function loadByCity(name) {
+  setStatus("Ищу город...");
+  card.classList.remove("visible");
+  try {
+    const { lat, lon, label } = await geocodeCity(name);
+    setStatus("Загружаю погоду...");
+    const data = await fetchWeather(lat, lon);
+    renderWeather(data, label);
+    setStatus("");
+  } catch (err) {
+    setStatus("Ошибка: " + err.message);
+  }
+}
+
+async function loadByCoords(lat, lon) {
+  setStatus("Загружаю погоду...");
+  card.classList.remove("visible");
+  try {
+    const data = await fetchWeather(lat, lon);
+    renderWeather(data, "Текущее местоположение");
+    setStatus("");
+  } catch (err) {
+    setStatus("Ошибка: " + err.message);
+  }
+}
+
+document.getElementById("search-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const city = document.getElementById("city-input").value.trim();
+  if (city) loadByCity(city);
+});
+
+document.getElementById("geo-btn").addEventListener("click", () => {
+  if (!navigator.geolocation) {
+    setStatus("Геолокация не поддерживается браузером");
+    return;
+  }
+  setStatus("Определяю местоположение...");
+  navigator.geolocation.getCurrentPosition(
+    (pos) => loadByCoords(pos.coords.latitude, pos.coords.longitude),
+    () => setStatus("Не удалось определить местоположение")
+  );
+});
+</script>
+</body>
+</html>
