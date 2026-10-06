@@ -1,0 +1,207 @@
+:root {
+  --bg-1: #13112b;
+  --bg-2: #1f1a42;
+  --glow: #4b3b8f;
+  --panel: rgba(255, 255, 255, 0.05);
+  --panel-border: rgba(255, 255, 255, 0.09);
+  --fg: #f1eefb;
+  --fg-dim: #a79fc9;
+  --accent: #ffb454;
+  --accent-soft: rgba(255, 180, 84, 0.15);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(160deg, var(--bg-1), var(--bg-2));
+  color: var(--fg);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 64px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bg-glow {
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--glow) 0%, transparent 70%);
+  opacity: 0.35;
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.wrap { width: 100%; max-width: 460px; position: relative; z-index: 1; }
+
+h1 {
+  font-size: 28px;
+  margin: 0 0 4px;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: var(--fg-dim);
+  font-size: 13.5px;
+  margin: 0 0 28px;
+}
+
+form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+input[type="text"] {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+input[type="text"]:focus { border-color: var(--accent); }
+
+button {
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #1b1832;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+button:hover { transform: translateY(-1px); opacity: 0.92; }
+button:active { transform: translateY(0); }
+
+.geo-btn {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: var(--fg-dim);
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.geo-btn:hover { background: var(--accent-soft); color: var(--accent); }
+
+#status {
+  color: var(--fg-dim);
+  font-size: 13.5px;
+  min-height: 20px;
+  margin-bottom: 6px;
+}
+
+#status.error { color: #ff8585; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 28px;
+  display: none;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  backdrop-filter: blur(6px);
+}
+
+.card.visible { display: block; opacity: 1; transform: translateY(0); }
+
+.current {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.current .emoji { font-size: 52px; line-height: 1; }
+
+.current .temp {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.current .place {
+  color: var(--fg-dim);
+  font-size: 13.5px;
+  margin-top: 6px;
+}
+
+.meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--fg-dim);
+  font-size: 13px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.meta .dot { opacity: 0.5; }
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 8px;
+}
+
+.day {
+  text-align: center;
+  border-radius: 12px;
+  padding: 12px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--panel-border);
+  transition: background 0.2s ease;
+}
+
+.day:hover { background: var(--accent-soft); }
+
+.day .label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.day .e { font-size: 22px; }
+
+.day .range {
+  font-size: 11px;
+  color: var(--fg-dim);
+  margin-top: 6px;
+}
+
+footer {
+  margin-top: 36px;
+  font-size: 12px;
+  color: var(--fg-dim);
+  text-align: center;
+}
+
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+@media (max-width: 420px) {
+  .days { gap: 5px; }
+  .day { padding: 8px 2px; }
+  .current .temp { font-size: 34px; }
+  .current .emoji { font-size: 42px; }
+}
